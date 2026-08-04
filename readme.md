@@ -18,7 +18,6 @@ clock 14.31818 /3A = 4.787 for uP and ISA expander 8284
 	provision for 8288 bus controller
 	add jumper traces to select between demultiplexed bus config and fully buffered system with 8288
 	Breakout wait state signals
-	tranceiver just latch? 8286?
 
 UART
 	8252 uart should be sw compatable with 8250 
@@ -28,7 +27,7 @@ UART
 # Connectors
 
 24 pin ATX connector
-3 +? pin female uart. Compatable with existing cable. Fully break out 8252 interface
+8 pin female uart. Compatable with existing cable. Fully break out 8252 interface
 8 Bit ISA connector
 EEPROM ZIF connector
 Custom debug connectors
@@ -38,7 +37,7 @@ Custom debug connectors
 Bus mode jumpers 3?
 
 # SAM
-
+TODO redo bios eeprom. provision for 256kbit 32k at fc000 and 94000? with compat switch for 94000
 0x00000 - 0x3C000 256k SRAM provisioned for 8 61256 / 84256 / AS6C62256 (all same pinout)
 0xC0000 - 0xFBFFF 256k EEPROM provisioned for 8 AT28C256 chips
 0xFC000 - 0xFDFFF 8k EEPROM
@@ -59,20 +58,26 @@ Bus mode jumpers 3?
 0x060 - 0x063 PPI 8255
 0x3F8 - 0x3FF 8252
 
-Expansion unit?
-
-
 # BOM
 
 ## Base Components
 
 1 - 8088
+1 - 8284 Clock Generator
 1 - 8259 Interrupt controller
 1 - 8253 Timer
 1 - 8255 PPI Port
-1 - 8288 bus controller (provisioned)
 8 - 61256 SRAM 4 84256 and leave 4 provisioned
 9 - AT28C256 EEPROM
+
+## System Bus
+
+1 - 8288 bus controller (provisioned)
+1 - 74LS245 data buffer
+1 - 74LS373 address buffer
+2 - 74LS244 address buffer
+
+TODO more buffers?
 
 ## IO Selection
 
@@ -84,8 +89,8 @@ A[15:7] | A6 | A5 | A4 | A3 | A2 | A1 | A0 | 8259 CS | 8253 CS | 8255 CS
 
 0       |  0 |  1 |  0 |  0 |  0 |  0 |  0 |        0|        1|       1
 0       |  0 |  1 |  0 |  0 |  0 |  0 |  1 |        0|        1|       1
-0       |  0 |  1 |  0 |  0 |  0 |  1 |  0 |     1->0|        1|       1 - Changed to dont care and use line decoder
-0       |  0 |  1 |  0 |  0 |  0 |  1 |  1 |     1->0|        1|       1 - Changed to dont care and use line decoder
+0       |  0 |  1 |  0 |  0 |  0 |  1 |  0 |        0|        1|       1 - Changed to dont care and use line decoder
+0       |  0 |  1 |  0 |  0 |  0 |  1 |  1 |        0|        1|       1 - Changed to dont care and use line decoder
 
 0       |  1 |  0 |  0 |  0 |  0 |  0 |  0 |        1|        0|       1
 0       |  1 |  0 |  0 |  0 |  0 |  0 |  1 |        1|        0|       1
@@ -97,11 +102,36 @@ A[15:7] | A6 | A5 | A4 | A3 | A2 | A1 | A0 | 8259 CS | 8253 CS | 8255 CS
 0       |  1 |  1 |  0 |  0 |  0 |  1 |  0 |        1|        1|       0
 0       |  1 |  1 |  0 |  0 |  0 |  1 |  1 |        1|        1|       0
 
-2 - 4078 8input nors for A15:7
-1 - 4011 NAND to combine 4078, provide inverter and feed E1 and E2 innverted by IO/M
-1 - 74154 4 to 16 line decoder. on A[8:5] Break out all unused signals to custom expander for future dma and other ports
-	TODO feed F to CS of 8250 and add logic to E1
-	TODO run over logic
+REDO:
+
+Note A8 is input to MSBytp matching gates and MSBit of line decoder
+
+This logic limits conflicts with ibm pc but ports are repeated in map.
+
+Only conflict is between diskette at 0x03f0 - 0x03f7 and COM1 0x03f8-0x03ff. A NOR between A7, 0x3 matching nand, to 8252 CS mitigates. TODO use any spare NOR so i dont have extra perhaps use extra NORs as buffer for reset button debounce?
+
+A[15:8] | A7 | A6 | A5 | 8259 CS | 8253 CS | 8255 CS | 8252 CS
+0x00    |  0 |  0 |  0 |        1|        1|        1|       1 - custom expansion CS (DMA chip 8237A-5)
+0x00    |  0 |  0 |  1 |        0|        1|        1|       1
+0x00    |  0 |  1 |  0 |        1|        0|        1|       1
+0x00    |  0 |  1 |  1 |        1|        1|        0|       1
+0x00    |  1 |  0 |  0 |        1|        1|        1|       1 - custom expansion CS (DMA page registers)
+0x00    |  1 |  0 |  1 |        1|        1|        1|       1 - custom expansion CS
+0x00    |  1 |  1 |  0 |        1|        1|        1|       1 - custom expansion CS
+0x00    |  1 |  1 |  1 |        1|        1|        1|       1 - custom expansion CS
+0x03    |  0 |  0 |  0 |        1|        1|        1|       1 - custom expansion CS
+0x03    |  0 |  0 |  1 |        1|        1|        1|       1 - custom expansion CS
+0x03    |  0 |  1 |  0 |        1|        1|        1|       1 - custom expansion CS
+0x03    |  0 |  1 |  1 |        1|        1|        1|       1 - custom expansion CS
+0x03    |  1 |  0 |  0 |        1|        1|        1|       1 - custom expansion CS
+0x03    |  1 |  0 |  1 |        1|        1|        1|       1 - custom expansion CS
+0x03    |  1 |  1 |  0 |        1|        1|        1|       1 - custom expansion CS
+0x03    |  1 |  1 |  1 |        1|        1|        1|       0
+
+2 - 4078 8input nors for A[15:9] match 0x00
+    2 nots to also match 0x03 for uart
+1 - 4011 NAND to combine 4078 and feed E1, provide inverter of IO/M to feed E2 provide 2 nots for 4078 0x03 matching
+1 - 74154 4 to 16 line decoder on A[8:5] Break out all unused signals to custom expander for future dma and other ports
 
 4012 2 4 input nand
 8 input not
@@ -109,15 +139,23 @@ A[15:7] | A6 | A5 | A4 | A3 | A2 | A1 | A0 | 8259 CS | 8253 CS | 8255 CS
 
 ## Memory selection
 1 - 4011 quad NAND
-    2 - NAND gates (active low ce) 1 for ramen for A[19:18] == 00 and one for romen for A[19:18] == 11
-    2 - not gates for romen A[19:18]
-2 - 74154, LS or HC? 4 to 16 line decoder to select chip chip using A[17:14] E1 connected to IO/M  E2 connected to ROMEN / RAMEN
+    2 - NAND gates (active low ce) one for ramen for A[19:18] == 00 and one for romen for A[19:18] == 11
+    2 - not gates for inputs to ramen A[19:18]
+2 - 74154, TODO LS or HC? 4 to 16 line decoder to select chip using A[17:14] E1 connected to IO/M  E2 connected to ROMEN / RAMEN
 
+## Reset Circuit
 
-4011 Nands for sure needed
+TODO
 
+TODO try to use some NORs as buffers to save a chip with io map
 
-Chips to buy:
+Chips to buy once working:
 SRAM
 EEPROM
 8288 bus controller
+
+## Pre Schematic Testing
+
+Free run test
+SRAM tests
+Digital logic sim for memory selection logic
