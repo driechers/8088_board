@@ -1,40 +1,41 @@
 = IBM PC Compatable memory and io
 
-power supply on ibmpc is 7A 5V 2A 12v. Use 24 pin ATX power supply. I have  40A 5v, 25A 12v and more!
+Backstory here: I found a mother load of retro computer chips and I'm seeing what I can make here. This ought to play doom.
 
-256k eeprom
-32K extra eeprom (16k for bios location, 16k for unused memroy location
-256k sram
-Interrupt Controller 8259
-System Timer 8253
-8255 for debug / compat
-8088 Debug Breakout traces if easy in eda
+== Base Requirements
 
-No DMA controller for now breakout traces for isa signals instead
-
-clock 14.31818 /3A = 4.787 for uP and ISA expander 8284
-8bit ISA expansion slot
-	match system bus latches in ibmpc
-	provision for 8288 bus controller
-	add jumper traces to select between demultiplexed bus config and fully buffered system with 8288
-	Breakout wait state signals
-
-UART
-	8252 uart should be sw compatable with 8250 
-		use 0x03F8-0x03FF and irq 4
+* Does not conflict with IBM PC
+* power supply on ibmpc is 7A 5V 2A 12v. Use 24 pin ATX power supply. I have  40A 5v, 25A 12v and more!
+* 256k eeprom
+* 32K extra eeprom (16k for bios location, 16k for unused memroy location
+* 256k sram
+* Interrupt Controller 8259
+* System Timer 8253
+* 8255 for debug / compat
+* 8088 Debug Breakout traces if easy in eda
+* No DMA controller for now breakout traces for isa signals instead
+* clock 14.31818 /3A = 4.787 for uP and ISA expander 8284
+* 8bit ISA expansion slot
+ ** match system bus latches in ibmpc
+ ** provision for 8288 bus controller
+ ** add jumper traces to select between demultiplexed bus config and fully buffered system with 8288
+ ** Breakout wait state signals
+* UART
+ ** 8252 uart should be sw compatable with 8250 
+ ** use 0x03F8-0x03FF and irq 4
 
 
 == Connectors
 
 * 24 pin ATX connector
-* 8 pin female uart. Compatable with existing cable. Fully break out 8252 interface
+* 8 pin female uart. Compatible with existing cable for 8085 demo board. Fully break out 8252 interface
 * 8 Bit ISA connector
 * EEPROM ZIF connector
 * Custom debug connectors
  ** 24 pin system bus
  ** 12 pin 8255 ports
  ** ?? pin wait signals
-Bus mode jumpers 3?
+* Male header for 3 Bus mode jumpers 3. Silk screen labels.
 
 == SAM
 TODO redo bios eeprom. provision for 256kbit 32k at fc000 and 94000? with compat switch for 94000
@@ -55,32 +56,40 @@ TODO redo bios eeprom. provision for 256kbit 32k at fc000 and 94000? with compat
 == IO Address Map
 
 [options="header"]
-|==
-IO Port       | Component
-0x020 - 0x021 | Interrupt controller 8259A
-0x040 - 0x043 | Timer 8253
-0x060 - 0x063 | PPI 8255
-0x3F8 - 0x3FF | 8252
-|==
+|===
+|IO Port       | Component
+|0x020 - 0x021 | Interrupt controller 8259A
+|0x040 - 0x043 | Timer 8253
+|0x060 - 0x063 | PPI 8255
+|0x3F8 - 0x3FF | 8252
+|===
 
 == BOM
 
 == Base Components
 
-1 - 8088
-1 - 8284 Clock Generator
-1 - 8259 Interrupt controller
-1 - 8253 Timer
-1 - 8255 PPI Port
-8 - 61256 SRAM 4 84256 and leave 4 provisioned
-9 - AT28C256 EEPROM
+[options="header"]
+|===
+|Qty | Part
+|1 | 8088
+|1 | 8284 Clock Generator
+|1 | 8259 Interrupt controller
+|1 | 8253 Timer
+|1 | 8255 PPI Port
+|8 | 61256 SRAM 4 84256 and leave 4 provisioned
+|9 | AT28C256 EEPROM
+|===
 
 == System Bus
 
-1 - 8288 bus controller (provisioned)
-1 - 74LS245 data buffer
-1 - 74LS373 address buffer
-2 - 74LS244 address buffer
+[options="header"]
+|===
+|Qty | Part
+|1 | 8288 bus controller (provisioned)
+|1 | 74LS245 data buffer
+|1 | 74LS373 address buffer
+|2 | 74LS244 address buffer
+|===
 
 TODO more buffers?
 
@@ -92,28 +101,30 @@ This logic limits conflicts with ibm pc but ports are repeated in map.
 
 Only conflict is between diskette at 0x03f0 - 0x03f7 and COM1 0x03f8-0x03ff. A NOR between A7, 0x3 matching nand, to 8252 CS mitigates. TODO use any spare NOR so i dont have extra perhaps use extra NORs as buffer for reset button debounce?
 
-[cols="1,1,1,1,1,1,1,1",options="header"]
+[cols="1,1,1,1,1,1,1,1,1",options="header"]
 |===
-|A[15:8] |A7 |A6 |A5 |8259 CS |8253 CS |8255 CS |8252 CS
+|A[15:8] |A7 |A6 |A5 |8259 CS |8253 CS |8255 CS |8252 CS| Note
 
-|0x00    |0  |0  |0  |      1|        1|       1|      1       footnote:[Custom expansion CS (DMA chip 8237A-5).]
-|0x00    |0  |0  |1  |      0|        1|       1|      1
-|0x00    |0  |1  |0  |      1|        0|       1|      1
-|0x00    |0  |1  |1  |      1|        1|       0|      1
-|0x00    |1  |0  |0  |      1|        1|       1|      1       footnote:[Custom expansion CS (DMA page registers).]
-|0x00    |1  |0  |1  |      1|        1|       1|      1       footnote:[Custom expansion CS.]
-|0x00    |1  |1  |0  |      1|        1|       1|      1       footnote:[Custom expansion CS.]
-|0x00    |1  |1  |1  |      1|        1|       1|      1       footnote:[Custom expansion CS.]
+|0x00    |0  |0  |0  |      1|        1|       1|      1|   Custom expansion CS (DMA chip 8237A-5).
+|0x00    |0  |0  |1  |      0|        1|       1|      1|
+|0x00    |0  |1  |0  |      1|        0|       1|      1|
+|0x00    |0  |1  |1  |      1|        1|       0|      1|
+|0x00    |1  |0  |0  |      1|        1|       1|      1|   Custom expansion CS (DMA page registers).
+|0x00    |1  |0  |1  |      1|        1|       1|      1|   Custom expansion CS.
+|0x00    |1  |1  |0  |      1|        1|       1|      1|   Custom expansion CS.
+|0x00    |1  |1  |1  |      1|        1|       1|      1|   Custom expansion CS.
 
-|0x03    |0  |0  |0  |      1|        1|       1|      1       footnote:[Custom expansion CS.]
-|0x03    |0  |0  |1  |      1|        1|       1|      1       footnote:[Custom expansion CS.]
-|0x03    |0  |1  |0  |      1|        1|       1|      1       footnote:[Custom expansion CS.]
-|0x03    |0  |1  |1  |      1|        1|       1|      1       footnote:[Custom expansion CS.]
-|0x03    |1  |0  |0  |      1|        1|       1|      1       footnote:[Custom expansion CS.]
-|0x03    |1  |0  |1  |      1|        1|       1|      1       footnote:[Custom expansion CS.]
-|0x03    |1  |1  |0  |      1|        1|       1|      1       footnote:[Custom expansion CS.]
-|0x03    |1  |1  |1  |      1|        1|       1|      0
+|0x03    |0  |0  |0  |      1|        1|       1|      1|   Custom expansion CS.
+|0x03    |0  |0  |1  |      1|        1|       1|      1|   Custom expansion CS.
+|0x03    |0  |1  |0  |      1|        1|       1|      1|   Custom expansion CS.
+|0x03    |0  |1  |1  |      1|        1|       1|      1|   Custom expansion CS.
+|0x03    |1  |0  |0  |      1|        1|       1|      1|   Custom expansion CS.
+|0x03    |1  |0  |1  |      1|        1|       1|      1|   Custom expansion CS.
+|0x03    |1  |1  |0  |      1|        1|       1|      1|   Custom expansion CS.
+|0x03    |1  |1  |1  |      1|        1|       1|      0|
 |===
+
+TODO make a table and draw logic
 
 2 - 4078 8input nors for A[15:9] match 0x00
     2 nots to also match 0x03 for uart
@@ -125,10 +136,48 @@ Only conflict is between diskette at 0x03f0 - 0x03f7 and COM1 0x03f8-0x03ff. A N
 
 
 == Memory selection
+
+[options="header"]
+|===
+|Qty | Part
+| 1  | 4011 Quad Nand Gate
+| 2  | 74154 4 to 16 line decoder TODO LS or HC?
+|===
+
+=== RAM / ROM select
+
+RAMEN and ROMEN feed E2 of line decode in bank selection (active low).
+
+Truth table implemented with all nand gates on a single 4011 chip.
+
+TODO drawing and remove poor description of 4011
+
+[options="header"]
+|===
+| A19 | A18 | RAMEN (E1) | ROMEN (E1)
+| 0   | 0   |    0       |    1
+| 0   | 1   |    1       |    1
+| 1   | 0   |    1       |    1
+| 1   | 1   |    1       |    0
+|===
+
 1 - 4011 quad NAND
     2 - NAND gates (active low ce) one for ramen for A[19:18] == 00 and one for romen for A[19:18] == 11
     2 - not gates for inputs to ramen A[19:18]
-2 - 74154, TODO LS or HC? 4 to 16 line decoder to select chip using A[17:14] E1 connected to IO/M  E2 connected to ROMEN / RAMEN
+
+=== RAM Bank Selection
+
+Simple 4 to 16 line decoder using A[17:14] E1 fed by RAMEN E2 fed by IO/M. Each bank is 32K for total of 512K.
+
+=== ROM Bank Selection
+
+Simple 4 to 16 line decoder using A[17:14] E1 fed by RAMEN E2 fed by IO/M. Each bank is 16k for total of 256k.
+
+OR
+
+Since I don't have any 3 to 8 decoders but I want 32k eeproms for ease of programming:
+
+Simple 4 to 16 line decoder using A[17:13] to act as 3 to 8, E1 fed by RAMEN E2 fed by IO/M. Each bank is 32k for total of 256k.
 
 == Reset Circuit
 
@@ -146,3 +195,4 @@ EEPROM
 Free run test
 SRAM tests
 Digital logic sim for memory selection logic
+breadboard reset circuit with 8085 demo board
