@@ -161,14 +161,18 @@ TODO drawing and remove poor description of 4011
 |===
 | A19 | A18 | RAMEN (E1) | ROMEN (E1)
 | 0   | 0   |    0       |    1
-| 0   | 1   |    1       |    1
+| 0   | 1   |    0       |    1
 | 1   | 0   |    1       |    1
 | 1   | 1   |    1       |    0
 |===
 
+A19 is RAMEN (active low enable on line decoder)
+
+ROMEN is simple NAND gate.
+
 1 - 4011 quad NAND
-    2 - NAND gates (active low ce) one for ramen for A[19:18] == 00 and one for romen for A[19:18] == 11
-    2 - not gates for inputs to ramen A[19:18]
+    1 - NAND gate for romen for A[19:18] == 11
+    3 - spare
 
 === RAM Bank Selection
 
