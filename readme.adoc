@@ -38,7 +38,7 @@ Backstory here: I found a mother load of retro computer chips and I'm seeing wha
 * Male header for 3 Bus mode jumpers 3. Silk screen labels.
 
 == SAM
-TODO redo bios eeprom. provision for 256kbit 32k at fc000 and 94000? with compat switch for 94000
+TODO 512k sram
 0x00000 - 0x3C000 256k SRAM provisioned for 8 61256 / 84256 / AS6C62256 (all same pinout)
 0xC0000 - 0xFBFFF 256k EEPROM provisioned for 8 AT28C256 chips
 0xFC000 - 0xFDFFF 8k EEPROM
@@ -86,12 +86,12 @@ TODO redo bios eeprom. provision for 256kbit 32k at fc000 and 94000? with compat
 |===
 |Qty | Part
 |1 | 8288 bus controller (provisioned)
-|1 | 74LS245 data buffer
-|1 | 74LS373 address buffer
-|2 | 74LS244 address buffer
+|1 | 74HCT45 data buffer
+|1 | 74LS373 address buffer HCT preferred LS should work
+|4 | 74HCT244 address buffer
 |===
 
-TODO more buffers?
+TODO check power consumption and make things LS if they go external. Maybe go back to LS everything and pull ups for ESD reliability and compatability.
 
 == IO Selection
 
@@ -99,7 +99,7 @@ Note A8 is input to MSBytp matching gates and MSBit of line decoder
 
 This logic limits conflicts with ibm pc but ports are repeated in map.
 
-Only conflict is between diskette at 0x03f0 - 0x03f7 and COM1 0x03f8-0x03ff. A NOR between A7, 0x3 matching nand, to 8252 CS mitigates. TODO use any spare NOR so i dont have extra perhaps use extra NORs as buffer for reset button debounce?
+Only conflict is between diskette at 0x03f0 - 0x03f7 and COM1 0x03f8-0x03ff. A NOR between A4, 0x3 matching nand, to 8252 CS mitigates. TODO use any spare NOR so i dont have extra perhaps use extra NORs as buffer for reset button debounce?
 
 [cols="1,1,1,1,1,1,1,1,1",options="header"]
 |===
@@ -126,9 +126,14 @@ Only conflict is between diskette at 0x03f0 - 0x03f7 and COM1 0x03f8-0x03ff. A N
 
 TODO make a table and draw logic
 
+image::io_port_logic.png[]
+
+These will need pull up resistors unless i can find hct buffers.
+
 2 - 4078 8input nors for A[15:9] match 0x00
     2 nots to also match 0x03 for uart
-1 - 4011 NAND to combine 4078 and feed E1, provide inverter of IO/M to feed E2 provide 2 nots for 4078 0x03 matching
+1 - 4001 NOR to combine 4078s and feed E1
+1 - 4011 NAND to provide inverter of IO/M to feed E2 provide 2 nots for 4078 0x03 matching
 1 - 74154 4 to 16 line decoder on A[8:5] Break out all unused signals to custom expander for future dma and other ports
 
 4012 2 4 input nand
@@ -141,7 +146,7 @@ TODO make a table and draw logic
 |===
 |Qty | Part
 | 1  | 4011 Quad Nand Gate
-| 2  | 74154 4 to 16 line decoder TODO LS or HC?
+| 2  | 74154 4 to 16 line decoder. HCT is preferred. HC needs pull up resistors, LC cannot drive cmos. Include spots for optional pullups on pcb if really not sure but change to hct buffers should fix
 |===
 
 === RAM / ROM select
@@ -181,18 +186,24 @@ Simple 4 to 16 line decoder using A[17:13] to act as 3 to 8, E1 fed by RAMEN E2 
 
 == Reset Circuit
 
-TODO
+Simple capacitor, button, and NOR gates.
 
-TODO try to use some NORs as buffers to save a chip with io map
+[options="header"]
+|===
+|Qty | Part
+| 1  | 4001 Quad NOR Gate. Share with io selection logic.
+|===
 
-Chips to buy once working:
-SRAM
-EEPROM
+
+
+=== Chips to buy once working
+SRAM (TTL compatable)
+EEPROM (TTL compatable)
 8288 bus controller
 
 == Pre Schematic Testing
 
 Free run test
-SRAM tests
+SRAM tests - Passed
 Digital logic sim for memory selection logic
 breadboard reset circuit with 8085 demo board
